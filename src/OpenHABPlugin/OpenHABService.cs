@@ -5,6 +5,62 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Net.Http;
 using System.Linq;
+using System.Net.WebSockets;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Security.Policy;
+using System.Text;
+
+class WebSocketClient
+{
+    ClientWebSocket _client;
+    public async Task Connect(string url)
+    {
+        _client = new ClientWebSocket();
+        await _client.ConnectAsync(new Uri(url), CancellationToken.None);
+        var receiveTask = ReceiveLoop();
+        while (true)
+        {
+            var completedTask = await Task.WhenAny(receiveTask, Task.Delay(Timeout.Infinite));
+            if (completedTask == receiveTask)
+            {
+                if (receiveTask.IsCompleted)
+                {
+                    break;
+                }
+                Console.WriteLine("New message received: " + receiveTask.Result);
+                receiveTask = ReceiveLoop();
+            }
+            else
+            {
+                //handle other tasks
+            }
+        }
+    }
+    public async Task<string> ReceiveLoop()
+    {
+        while (_client.State == WebSocketState.Open)
+        {
+            var buffer = new ArraySegment<byte>(new byte[1024]);
+            var result = await _client.ReceiveAsync(buffer, CancellationToken.None);
+            if (result.MessageType == WebSocketMessageType.Text)
+            {
+                var message = Encoding.UTF8.GetString(buffer.Array, 0, result.Count);
+                if (result.CloseStatus != null)
+                {
+                    await _client.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+                    return "";
+                }
+                return message;
+            }
+        }
+        return "";
+    }
+    public async Task Close()
+    {
+        await _client.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+    }
+} 
 
 #nullable enable
 namespace Loupedeck.OpenHABPlugin
@@ -12,6 +68,7 @@ namespace Loupedeck.OpenHABPlugin
     public class OpenHABService
     {
         protected HttpClient? _client = null;
+        protected ClientWebSocket? _webSocketClient = null;
 
         public List<OpenHABCommandItem> Items { get; } = new List<OpenHABCommandItem>();
 
@@ -21,11 +78,43 @@ namespace Loupedeck.OpenHABPlugin
 
         public IEnumerable<OpenHABCommandItem> Dimmer => Items.Where(item => item.Type == "Dimmer");
 
+        protected String? WebSocketUrl
+        {
+            get
+            {
+                if (_baseUrl.StartsWith("https://"))
+                {
+                    return "wss://" + _baseUrl.Substring(8);
+                }
+                else if (_baseUrl.StartsWith("http://"))
+                {
+                    return "ws://" + _baseUrl.Substring(8);
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
+
         public OpenHABService(String baseUrl)
         {
             _client = new HttpClient();
             _baseUrl = baseUrl;
             ReadOpenHABItems();
+
+            if (WebSocketUrl != null)
+            {
+                Task.Run(async () => await Connect(WebSocketUrl));
+            }
+        }
+
+        public async Task Connect(string url)
+        {
+            _webSocketClient = new ClientWebSocket();
+            
+            await _webSocketClient.ConnectAsync(new Uri(url), CancellationToken.None);
         }
 
         /// <summary>
