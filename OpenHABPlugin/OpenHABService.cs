@@ -1,5 +1,4 @@
-﻿using System;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -14,14 +13,21 @@ using System.Text;
 #nullable enable
 namespace Loupedeck.OpenHABPlugin
 {
+    using System;
+    using System.Runtime.Remoting.Messaging;
+
     public class OpenHABService
     {
+
         protected HttpClient? _httpClient = null;
         protected ClientWebSocket? _webSocketClient = null;
 
+        public event EventHandler<OpenHABEventArgs>? ItemChanged;
+
         public List<OpenHABCommandItem> Items { get; } = new List<OpenHABCommandItem>();
 
-        protected String _baseUrl;
+        protected String? _baseUrl;
+        protected String? _apiToken;
 
         public IEnumerable<OpenHABCommandItem> Switches => Items.Where(item => item.Type == "Switch");
 
@@ -31,39 +37,52 @@ namespace Loupedeck.OpenHABPlugin
         {
             get
             {
-                if (_baseUrl.StartsWith("https://"))
+                if (_baseUrl != null)
                 {
-                    return "wss://" + _baseUrl.Substring(8);
+                    if (_baseUrl.StartsWith("https://"))
+                    {
+                        return "wss://" + _baseUrl.Substring(8) + "/ws";
+                    }
+                    else if (_baseUrl.StartsWith("http://"))
+                    {
+                        return "ws://" + _baseUrl.Substring(7) + "/ws";
+                    }
                 }
-                else if (_baseUrl.StartsWith("http://"))
-                {
-                    return "ws://" + _baseUrl.Substring(8);
-                }
-                else
-                {
-                    return null;
-                }
+                return null;
             }
         }
 
 
-        public OpenHABService(String baseUrl)
+        public OpenHABService()
         {
             _httpClient = new HttpClient();
-            _baseUrl = baseUrl;
-            ReadOpenHABItems();
+        }
 
+        public void Initialize(String baseUrl, String token)
+        {
+            Console.WriteLine("Initialization called");
+            _baseUrl = baseUrl;
+            _apiToken = token;
+            ReadOpenHABItems();
+            Console.WriteLine("Items read");
             if (WebSocketUrl != null)
             {
-                Task.Run(async () => await Connect(WebSocketUrl));
+                Task.Run(async () => await Connect());
             }
         }
 
-        public async Task Connect(string url)
+        private async Task Connect()
         {
             _webSocketClient = new ClientWebSocket();
+            Console.WriteLine("WebSocket created, connecting to: " + WebSocketUrl);
 
-            await _webSocketClient.ConnectAsync(new Uri(url), CancellationToken.None);
+            await _webSocketClient.ConnectAsync(new Uri(WebSocketUrl), CancellationToken.None);
+            SendEncodedMessage(_apiToken);
+            Console.WriteLine("API Token sent");
+
+            System.Timers.Timer timer = new System.Timers.Timer(5000);
+            timer.Elapsed += Watchdog_Timer;
+
             var receiveTask = ReceiveLoop();
             while (true)
             {
@@ -96,15 +115,24 @@ namespace Loupedeck.OpenHABPlugin
                                 {
                                     var payload = JsonConvert.DeserializeObject<JObject>(data["payload"]!.ToString());
                                     string? itemValue = payload?["value"]?.ToString();
+                                    if (itemValue != null)
+                                    {
+                                        /// Update the state
+                                        /// Call an update of all registered elements
+                                        var item = Items.FirstOrDefault(item => item.Name == itemName);
+                                        if ((item != null) && (item.Registered))
+                                        {
+                                            item.State = itemValue;
+                                            ItemChanged?.Invoke(this, new OpenHABEventArgs(itemName, itemValue!, ""));
+                                        }
+                                    }
 
-                                    /// Update the state
-                                    /// Call an update of all registered elements
                                 }
                             }
                         }
                     }
 
-                Console.WriteLine("New message received: " + receiveTask.Result);
+                    Console.WriteLine("New message received: " + receiveTask.Result);
                     receiveTask = ReceiveLoop();
                 }
                 else
@@ -112,6 +140,19 @@ namespace Loupedeck.OpenHABPlugin
                     //handle other tasks
                 }
             }
+        }
+
+        private void SendEncodedMessage(string message)
+        {
+            var buffer = Encoding.UTF8.GetBytes(message);
+            var segment = new ArraySegment<byte>(buffer);
+            _webSocketClient?.SendAsync(segment, WebSocketMessageType.Text, true, CancellationToken.None);
+            Console.WriteLine("Message sent: " + message);
+        }
+
+        private void Watchdog_Timer(Object sender, System.Timers.ElapsedEventArgs e)
+        {
+            SendEncodedMessage("{\r\n    \"type\": \"WebSocketEvent\",\r\n    \"topic\": \"openhab/websocket/heartbeat\",\r\n    \"payload\": \"PING\",\r\n    \"source\": \"Loupedeck_OpenHABPlugin\"\r\n}");
         }
 
         public async Task<string> ReceiveLoop()
@@ -125,6 +166,8 @@ namespace Loupedeck.OpenHABPlugin
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
                         var message = Encoding.UTF8.GetString(buffer.Array, 0, result.Count);
+                        Console.WriteLine("New message received: " + message);
+
                         if (result.CloseStatus != null)
                         {
                             await _webSocketClient.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
@@ -191,7 +234,8 @@ namespace Loupedeck.OpenHABPlugin
                                 Link = itemLink,
                                 Group = itemGroup,
                                 Category = itemCategory,
-                                State = itemState
+                                State = itemState,
+                                Registered = false
                             });
                         }
                         itemNo++;
@@ -275,6 +319,14 @@ namespace Loupedeck.OpenHABPlugin
             return state;
         }
 
+        /// <summary>
+        /// Registers an action parameter as item to be updated
+        /// </summary>
+        /// <param name="actionParameter"></param>
+        internal void RegisterItem(String actionParameter)
+        {
+            Items.FirstOrDefault(item => item.Name == actionParameter).Registered = true;
+        }
     }
 }
 #nullable restore

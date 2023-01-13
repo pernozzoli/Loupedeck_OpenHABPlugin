@@ -26,12 +26,23 @@ namespace Loupedeck.OpenHABPlugin.Actions
 
             this.MakeProfileAction("tree;Select item:");
 
+            //_ohService.ItemChanged += this.OnItemChanged;
+
+        }
+
+        private void OnItemChanged(Object sender, OpenHABEventArgs e)
+        {
+            if (this.GetCurrentState(e.Item).Name != e.State)
+            {
+                this.ToggleCurrentState(e.Item);
+            }
+            this.ActionImageChanged(e.Item);
         }
 
         protected override void RunCommand(String actionParameter)
         {
+            Console.WriteLine("OH Command Triggered: " + actionParameter);
             this.ToggleCurrentState(actionParameter);
-            //var state = _ohService.ToggleItem(actionParameter);
             _ohService.SetItemState(actionParameter, this.GetCurrentState(actionParameter).Name);
             this.ActionImageChanged(actionParameter);
         }
@@ -87,6 +98,14 @@ namespace Loupedeck.OpenHABPlugin.Actions
             return tree;
         }
 
+        protected override BitmapImage GetCommandImage(String actionParameter, Int32 stateIndex, PluginImageSize imageSize)
+        {
+            _ohService.ItemChanged -= this.OnItemChanged;
+            _ohService.ItemChanged += this.OnItemChanged;
+
+            _ohService.RegisterItem(actionParameter);
+            return base.GetCommandImage(actionParameter, stateIndex, imageSize);
+        }
     }
 }
 

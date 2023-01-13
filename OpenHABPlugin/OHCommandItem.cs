@@ -11,6 +11,7 @@ namespace Loupedeck.OpenHABPlugin
         public string? Group { get; set; }
         public string? Category { get; set; }
         public string? State { get; set; }
+        public System.Boolean Registered { get; internal set; }
     }
 }
 
