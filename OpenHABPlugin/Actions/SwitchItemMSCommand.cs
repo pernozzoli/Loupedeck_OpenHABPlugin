@@ -32,11 +32,12 @@ namespace Loupedeck.OpenHABPlugin.Actions
 
         private void OnItemChanged(Object sender, OpenHABEventArgs e)
         {
-            if (this.GetCurrentState(e.Item).Name != e.State)
+            Console.WriteLine("Received OnItemChanged: " + e);
+            if (this.GetCurrentState(e.Link).Name != e.State)
             {
-                this.ToggleCurrentState(e.Item);
+                this.ToggleCurrentState(e.Link);
             }
-            this.ActionImageChanged(e.Item);
+            this.ActionImageChanged(e.Link);
         }
 
         protected override void RunCommand(String actionParameter)
@@ -100,6 +101,7 @@ namespace Loupedeck.OpenHABPlugin.Actions
 
         protected override BitmapImage GetCommandImage(String actionParameter, Int32 stateIndex, PluginImageSize imageSize)
         {
+            Console.WriteLine("Image for item requested: " + actionParameter + ", stateIndex: " + stateIndex);
             _ohService.ItemChanged -= this.OnItemChanged;
             _ohService.ItemChanged += this.OnItemChanged;
 

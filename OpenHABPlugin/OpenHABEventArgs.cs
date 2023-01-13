@@ -5,13 +5,13 @@ namespace Loupedeck.OpenHABPlugin
 
     public class OpenHABEventArgs : EventArgs
     {
-        public string Item { get; set; }
+        public string Link { get; set; }
         public string State { get; set; }
         public string Command { get; set; }
 
         public OpenHABEventArgs(string item, string state, string command)
         {
-            Item = item;
+            Link = item;
             State = state;
             Command = command;
         }
