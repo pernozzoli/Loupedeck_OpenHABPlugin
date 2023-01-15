@@ -3,45 +3,80 @@ namespace Loupedeck.OpenHABPlugin
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Net.Http;
+    using System.Security.Policy;
 
     using Newtonsoft.Json.Linq;
 
-    // This class contains the plugin-level logic of the Loupedeck plugin.
-
+    /// <summary>
+    /// This class contains the plugin-level logic of the Loupedeck plugin. 
+    /// </summary>
     public class OpenHABPlugin : Plugin
     {
-        // Gets a value indicating whether this is an Universal plugin or an Application plugin.
+        /// <summary>
+        /// Gets a value indicating whether this is an Universal plugin or an Application plugin.
+        /// </summary>
         public override Boolean UsesApplicationApiOnly => true;
 
-        // Gets a value indicating whether this is an API-only plugin.
+        /// <summary>
+        /// Gets a value indicating whether this is an API-only plugin.
+        /// </summary>
         public override Boolean HasNoApplication => true;
 
+        /// <summary>
+        /// OpenHAB service controller
+        /// </summary>
         public OpenHABService OHService { get; } = new OpenHABService();
-        protected string _baseUrl = "http://localhost:8080";
+
+        /// <summary>
+        /// Plugin configuration file name
+        /// </summary>
+        private const String ConfigFileName = "config.json";
+
+        /// <summary>
+        /// Name of URL setting in configuration file
+        /// </summary>
+        private const String UrlSetting = "url";
+
+        /// <summary>
+        /// Name of token setting in configuration file
+        /// </summary>
+        private const String TokenSetting = "token";
+
+        /// <summary>
+        /// Base URL to be read from config.json file
+        /// </summary>
+        protected string _baseUrl = "";
+
+        /// <summary>
+        /// API token
+        /// </summary>
         protected string _apiToken = "";
 
-        // This method is called when the plugin is loaded during the Loupedeck service start-up.
+        /// <summary>
+        /// This method is called when the plugin is loaded during the Loupedeck service start-up.
+        /// Reads the plugin configuration and initializes the openHAB controller
+        /// </summary>
         public override void Load()
         {
             Console.WriteLine("OH Plugin loading");
             var pluginDataDirectory = this.GetPluginDataDirectory();
             if (IoHelpers.EnsureDirectoryExists(pluginDataDirectory))
             {
-                var filePath = Path.Combine(pluginDataDirectory, "config.json");
+                var filePath = Path.Combine(pluginDataDirectory, ConfigFileName);
                 JObject jsonData;
 
                 try
                 {
                     jsonData = JObject.Parse(File.ReadAllText(filePath));
-                    if (jsonData["url"] != null)
+                    if (jsonData[UrlSetting] != null)
                     {
-                        _baseUrl = jsonData["url"]!.ToString();
+                        _baseUrl = jsonData[UrlSetting]!.ToString();
                     }
-                    if (jsonData["token"] != null)
+                    if (jsonData[TokenSetting] != null)
                     {
-                        _apiToken = jsonData["token"].ToString();
+                        _apiToken = jsonData[TokenSetting].ToString();
                     }
-                    Console.WriteLine("Tokens read from file: " + _baseUrl + ", " + _apiToken);
                 }
                 catch (Exception ex)
                 {
@@ -50,12 +85,51 @@ namespace Loupedeck.OpenHABPlugin
                 }
             }
 
-            OHService.Initialize(_baseUrl, _apiToken);
+            if (!string.IsNullOrEmpty(_baseUrl))
+            {
+                Console.WriteLine("Initializing...");
+                OHService.Initialize(_baseUrl, _apiToken);
+            }
         }
 
-        // This method is called when the plugin is unloaded during the Loupedeck service shutdown.
+        /// <summary>
+        /// This method is called when the plugin is unloaded during the Loupedeck service shutdown.
+        /// </summary>
         public override void Unload()
         {
+        }
+
+        /// <summary>
+        /// Configures the base openHAB url, writes it into the configuration file and reinitializes the openHAB service
+        /// </summary>
+        /// <param name="baseUrl">OpenHAB base URL</param>
+        internal void SetBaseUrl(String baseUrl)
+        {
+            Console.WriteLine($"Setting base url: {baseUrl}");
+
+            using (var client = new HttpClient())
+            {
+                var response = client.GetAsync(baseUrl).Result;
+                if (response.IsSuccessStatusCode)
+                {
+                    // URL is reachable
+                    var pluginDataDirectory = this.GetPluginDataDirectory();
+                    if (IoHelpers.EnsureDirectoryExists(pluginDataDirectory))
+                    {
+                        var filePath = Path.Combine(pluginDataDirectory, ConfigFileName);
+                        JObject jsonData = new JObject();
+                        jsonData["url"] = baseUrl;
+                        File.WriteAllText(filePath, jsonData.ToString());
+                    }
+                }
+                else
+                {
+                    // URL is not reachable
+                    Console.WriteLine($"Could not reach given url: {baseUrl}");
+                }
+            }
+
+            OHService.Initialize(_baseUrl, _apiToken);
         }
     }
 }

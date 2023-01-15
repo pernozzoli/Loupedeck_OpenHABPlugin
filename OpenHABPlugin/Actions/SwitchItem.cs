@@ -12,11 +12,14 @@ using Newtonsoft.Json.Linq;
 #nullable enable
 namespace Loupedeck.OpenHABPlugin.Actions
 {
-    public class SwitchItemMSCommand : PluginMultistateDynamicCommand
+    public class SwitchItem : PluginMultistateDynamicCommand
     {
+        /// <summary>
+        /// Reference to openHAB service
+        /// </summary>
         protected OpenHABService _ohService => ((OpenHABPlugin)this.Plugin).OHService;
 
-        public SwitchItemMSCommand() : base()
+        public SwitchItem() : base()
         {
             this.DisplayName = "Switches";
             this.GroupName = "Not used";
@@ -25,14 +28,15 @@ namespace Loupedeck.OpenHABPlugin.Actions
             this.AddState("ON", "on", "Switch off");
 
             this.MakeProfileAction("tree;Select item:");
-
-            //_ohService.ItemChanged += this.OnItemChanged;
-
         }
 
+        /// <summary>
+        /// Called when registered item changes
+        /// </summary>
+        /// <param name="sender">Event sender</param>
+        /// <param name="e">Item info</param>
         private void OnItemChanged(Object sender, OpenHABEventArgs e)
         {
-            Console.WriteLine("Received OnItemChanged: " + e);
             if (this.GetCurrentState(e.Link).Name != e.State)
             {
                 this.ToggleCurrentState(e.Link);
@@ -40,30 +44,21 @@ namespace Loupedeck.OpenHABPlugin.Actions
             this.ActionImageChanged(e.Link);
         }
 
+        /// <summary>
+        /// Command execution
+        /// </summary>
+        /// <param name="actionParameter">Item link</param>
         protected override void RunCommand(String actionParameter)
         {
-            Console.WriteLine("OH Command Triggered: " + actionParameter);
             this.ToggleCurrentState(actionParameter);
-            _ohService.SetItemState(actionParameter, this.GetCurrentState(actionParameter).Name);
+            _ohService.SendItemState(actionParameter, this.GetCurrentState(actionParameter).Name);
             this.ActionImageChanged(actionParameter);
         }
- 
-        //protected override BitmapImage GetCommandImage(String actionParameter, Int32 stateIndex, PluginImageSize imageSize)
-        //{
-        //    /// Get the label of the item
-        //    var item = _ohService.Switches.FirstOrDefault(i => i.Link == actionParameter);
-        //    string? itemLabel = item?.Label;
-        //    string? itemCategory = item?.Category;
-        //    using (var bitmapBuilder = new BitmapBuilder(imageSize))
-        //    {
-        //        var imgStream = _ohService.GetItemIconForState(stateIndex == 1 ? "ON" : "OFF", itemCategory);
-        //        bitmapBuilder.SetBackgroundImage(BitmapImage.FromArray(imgStream));
-        //        /// TODO: Check if word wrap can be done
-        //        bitmapBuilder.DrawText(itemLabel);
-        //        return bitmapBuilder.ToImage();
-        //    }
-        //}
 
+        /// <summary>
+        /// Command settings (item selection tree)
+        /// </summary>
+        /// <returns>Action data</returns>
         protected override PluginProfileActionData GetProfileActionData()
         {
             // create tree data
@@ -99,9 +94,16 @@ namespace Loupedeck.OpenHABPlugin.Actions
             return tree;
         }
 
+        /// <summary>
+        /// Get image, register item and register to item change event
+        /// </summary>
+        /// <param name="actionParameter">Item link</param>
+        /// <param name="stateIndex">Status</param>
+        /// <param name="imageSize">Image size for button</param>
+        /// <returns></returns>
         protected override BitmapImage GetCommandImage(String actionParameter, Int32 stateIndex, PluginImageSize imageSize)
         {
-            Console.WriteLine("Image for item requested: " + actionParameter + ", stateIndex: " + stateIndex);
+            //Console.WriteLine("Image for item requested: " + actionParameter + ", stateIndex: " + stateIndex);
             _ohService.ItemChanged -= this.OnItemChanged;
             _ohService.ItemChanged += this.OnItemChanged;
 

@@ -13,8 +13,8 @@
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup>
-    <BaseIntermediateOutputPath>$(SolutionDir)..\obj\</BaseIntermediateOutputPath>
-    <BaseOutputPath>$(SolutionDir)..\bin\</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(SolutionDir)obj\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(SolutionDir)bin\</BaseOutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -73,12 +73,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="OpenHABApplication.cs" />
     <Compile Include="OpenHABPlugin.cs" />
-    <Compile Include="Actions\CounterAdjustment.cs" />
-    <Compile Include="Actions\SwitchItemMSCommand.cs" />
+    <Compile Include="Actions\SwitchItem.cs" />
     <Compile Include="OpenHABService.cs" />
     <Compile Include="OHCommandItem.cs" />
-    <Compile Include="Actions\DimmerItemCommand.cs" />
+    <Compile Include="Actions\DimmerItem.cs" />
     <Compile Include="OpenHABEventArgs.cs" />
+    <Compile Include="Actions\LabelItem.cs" />
+    <Compile Include="Actions\SetOpenHABUrl.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="metadata\LoupedeckPackage.yaml" />
@@ -86,6 +87,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\openhab_80.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

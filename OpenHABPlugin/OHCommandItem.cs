@@ -1,17 +1,50 @@
-﻿#nullable enable
+﻿using System;
+
+#nullable enable
 
 namespace Loupedeck.OpenHABPlugin
 {
+    /// <summary>
+    /// OpenHAB item for internal representation, contains information read via the openHAB API
+    /// </summary>
     public class OpenHABCommandItem
     {
-        public string? Type { get; set; }
-        public string? Label { get; set; }
-        public string? Name { get; set; }
-        public string? Link { get; set; }
-        public string? Group { get; set; }
-        public string? Category { get; set; }
-        public string? State { get; set; }
-        public System.Boolean Registered { get; internal set; }
+        /// <summary>
+        /// Item type
+        /// </summary>
+        public String? Type { get; set; }
+        /// <summary>
+        /// Label
+        /// </summary>
+        public String? Label { get; set; }
+        /// <summary>
+        /// Name of the item
+        /// </summary>
+        public String? Name { get; set; }
+        /// <summary>
+        /// Full link as unique id and direct access to item information on openHAB
+        /// </summary>
+        public String? Link { get; set; }
+        /// <summary>
+        /// First group listed in item info
+        /// </summary>
+        public String? Group { get; set; }
+        /// <summary>
+        /// Item icon category (not used currently
+        /// </summary>
+        public String? Category { get; set; }
+        /// <summary>
+        /// Current item state (cached)
+        /// </summary>
+        public String? State { get; set; }
+        /// <summary>
+        /// Item is registered for updates
+        /// </summary>
+        public Boolean Registered { get; internal set; }
+        /// <summary>
+        /// Label pattern (format string) not used currently as not compatible to C# string formatting
+        /// </summary>
+        public String? Pattern { get; internal set; }
     }
 }
 

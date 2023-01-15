@@ -2,21 +2,32 @@ namespace Loupedeck.OpenHABPlugin
 {
     using System;
 
-    // This class can be used to connect the Loupedeck plugin to an application.
-
+    /// <summary>
+    /// This class can be used to connect the Loupedeck plugin to an application.
+    /// As there is no openHAB application to connect this class is unused
+    /// </summary>
     public class OpenHABApplication : ClientApplication
     {
         public OpenHABApplication()
         {
         }
 
-        // This method can be used to link the plugin to a Windows application.
+        /// <summary>
+        /// This method can be used to link the plugin to a Windows application.
+        /// </summary>
+        /// <returns></returns>
         protected override String GetProcessName() => "";
 
-        // This method can be used to link the plugin to a macOS application.
+        /// <summary>
+        /// This method can be used to link the plugin to a macOS application.
+        /// </summary>
+        /// <returns></returns>
         protected override String GetBundleName() => "";
 
-        // This method can be used to check whether the application is installed or not.
+        /// <summary>
+        /// This method can be used to check whether the application is installed or not.
+        /// </summary>
+        /// <returns></returns>
         public override ClientApplicationStatus GetApplicationStatus() => ClientApplicationStatus.Unknown;
     }
 }
