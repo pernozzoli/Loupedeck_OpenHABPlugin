@@ -1,4 +1,4 @@
-# Loupedeck_OpenHABPlugin
+# Loupedeck OpenHABPlugin
 
 ## What it is
 
