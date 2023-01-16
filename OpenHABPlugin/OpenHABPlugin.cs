@@ -87,7 +87,7 @@ namespace Loupedeck.OpenHABPlugin
 
             if (!string.IsNullOrEmpty(_baseUrl))
             {
-                Console.WriteLine("Initializing...");
+                Console.WriteLine($"Initializing connection to URL: {_baseUrl}");
                 OHService.Initialize(_baseUrl, _apiToken);
             }
         }

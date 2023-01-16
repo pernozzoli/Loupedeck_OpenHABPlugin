@@ -90,12 +90,12 @@ namespace Loupedeck.OpenHABPlugin
             {
                 await Task.Delay(5000);
                 var readItems = Items.Where(item => item.Registered);
-                //Console.WriteLine("Timer tick, Items count: " + readItems.Count());
                 foreach (var item in readItems)
                 {
                     if (item.Link != null)
                     {
                         var state = ReceiveItemState(item.Link!);
+                        //Console.WriteLine($"Item {item.Link}: {state}");
                         // Send only if changed
                         if (state != item.State)
                         {
@@ -118,6 +118,7 @@ namespace Loupedeck.OpenHABPlugin
             _baseUrl = baseUrl;
             _apiToken = token;
             ReadOpenHABItems();
+            Console.WriteLine("OpenHAB items read");
             Timer();
             //if (WebSocketUrl != null)
             //{
@@ -195,10 +196,20 @@ namespace Loupedeck.OpenHABPlugin
         /// <param name="actionParameter">Item link</param>
         internal void RegisterItem(String actionParameter)
         {
-            Console.WriteLine("Registering for actionParameter: " + actionParameter);
-            var item = Items.FirstOrDefault(item => item.Link == actionParameter);
-            Console.WriteLine("Item for registering found: " + item.Name);
-            item.Registered = true;
+            Console.WriteLine("Pre-Registering for actionParameter: " + actionParameter);
+            if (!String.IsNullOrEmpty(actionParameter))
+            {
+                var item = Items.FirstOrDefault(item => item.Link == actionParameter);
+                if (item != default)
+                {
+                    Console.WriteLine("Item for registering found: " + item.Name);
+                    item.Registered = true;
+                }
+                else
+                {
+                    Console.WriteLine($"Item {item!.Name} not found.");
+                }
+            }
         }
 
         /// <summary>
@@ -245,7 +256,7 @@ namespace Loupedeck.OpenHABPlugin
         internal String? GetDisplayStateOfItem(String actionParameter)
         {
             var item = Items.FirstOrDefault(item => item.Link == actionParameter);
-            Console.WriteLine($"Item found: {item.Name}, {item.Type}, {item.State}");
+            //Console.WriteLine($"Item found: {item.Name}, {item.Type}, {item.State}");
             if (item != null)
             {
                 String? displayState = item.State;

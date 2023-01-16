@@ -65,9 +65,16 @@ namespace Loupedeck.OpenHABPlugin.Actions
         /// <returns></returns>
         protected override String GetAdjustmentValue(String actionParameter)
         {
-            var currentValue = OpenHABService.ExtractNumericalValue(_ohService.GetStateOfItem(actionParameter));
-
-            return $"{currentValue} %";
+            var state = _ohService.GetStateOfItem(actionParameter);
+            if ((state == "OFF") || (state == "ON"))
+            {
+                return state;
+            }
+            else
+            {
+                var currentValue = OpenHABService.ExtractNumericalValue(_ohService.GetStateOfItem(actionParameter));
+                return $"{currentValue} %";
+            }
         }
 
         /// <summary>
