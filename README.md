@@ -5,7 +5,7 @@
 This plugin provides you with labels, actions, and adjustments for your Loupedeck device to interact with your home automation system via [OpenHAB](https://www.openhab.org/).
 This plugin requires a running OpenHAB server, reachable from the device, your Loupedeck device is attached to.
 
-- [x] Works for MacOS (precompiled)
+- [x] Works for MacOS (precompiled, work in progress)
 - [x] Works for Windows (must be compiled from source)
 
 ## Release / Getting started
