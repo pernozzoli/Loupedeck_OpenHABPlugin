@@ -28,6 +28,18 @@ namespace Loupedeck.OpenHABPlugin.Actions
             this.AddState("ON", "on", "Switch off");
 
             this.MakeProfileAction("tree;Select item:");
+
+
+        }
+
+        protected override Boolean OnLoad()
+        {
+            bool result = base.OnLoad();
+
+            Console.WriteLine("Switch Item loaded");
+            _ohService.ItemChanged += this.OnItemChanged;
+
+            return result;
         }
 
         /// <summary>
@@ -37,7 +49,7 @@ namespace Loupedeck.OpenHABPlugin.Actions
         /// <param name="e">Item info</param>
         private void OnItemChanged(Object sender, OpenHABEventArgs e)
         {
-            Console.WriteLine($"Item {e.Link} update received: {e.State}");
+            //Console.WriteLine($"Item {e.Link} update received: {e.State}");
             if (this.GetCurrentState(e.Link).Name != e.State)
             {
                 this.ToggleCurrentState(e.Link);
@@ -45,12 +57,16 @@ namespace Loupedeck.OpenHABPlugin.Actions
             this.ActionImageChanged(e.Link);
         }
 
+
         /// <summary>
         /// Command execution
         /// </summary>
         /// <param name="actionParameter">Item link</param>
         protected override void RunCommand(String actionParameter)
         {
+            /// Make sure that item is registered
+            Register(actionParameter);
+
             this.ToggleCurrentState(actionParameter);
             _ohService.SendItemState(actionParameter, this.GetCurrentState(actionParameter).Name);
             this.ActionImageChanged(actionParameter);
@@ -104,12 +120,23 @@ namespace Loupedeck.OpenHABPlugin.Actions
         /// <returns></returns>
         protected override BitmapImage GetCommandImage(String actionParameter, Int32 stateIndex, PluginImageSize imageSize)
         {
-            Console.WriteLine("Image for item requested: " + actionParameter + ", stateIndex: " + stateIndex);
-            _ohService.ItemChanged -= this.OnItemChanged;
-            _ohService.ItemChanged += this.OnItemChanged;
+            Register(actionParameter);
 
-            _ohService.RegisterItem(actionParameter);
             return base.GetCommandImage(actionParameter, stateIndex, imageSize);
+        }
+
+        /// <summary>
+        /// Registers the action parameter for updates
+        /// </summary>
+        /// <param name="actionParameter">Item link</param>
+        private void Register(String actionParameter)
+        {
+            if (!_ohService.ItemIsRegistered(actionParameter))
+            {
+                Console.WriteLine("Image for item requested: " + actionParameter);
+
+                _ohService.RegisterItem(actionParameter);
+            }
         }
     }
 }

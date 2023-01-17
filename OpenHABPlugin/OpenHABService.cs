@@ -118,7 +118,8 @@ namespace Loupedeck.OpenHABPlugin
             _baseUrl = baseUrl;
             _apiToken = token;
             ReadOpenHABItems();
-            Console.WriteLine("OpenHAB items read");
+            Console.WriteLine("OpenHAB items read, triggering item update");
+            TriggerRegistration();
             Timer();
             //if (WebSocketUrl != null)
             //{
@@ -209,6 +210,21 @@ namespace Loupedeck.OpenHABPlugin
                 {
                     Console.WriteLine($"Item {item!.Name} not found.");
                 }
+            }
+        }
+
+        internal Boolean ItemIsRegistered(String actionParameter)
+        {
+            var item = Items.FirstOrDefault(item => item.Link == actionParameter);
+            
+            return item != default ? item.Registered : true;
+        }
+
+        internal void TriggerRegistration()
+        {
+            foreach (var item in Switches)
+            {
+                ItemChanged?.Invoke(this, new OpenHABEventArgs(item.Link!, item.State!, ""));
             }
         }
 
@@ -560,8 +576,6 @@ namespace Loupedeck.OpenHABPlugin
                 await _webSocketClient!.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
             }
         }
-
-
 
         #endregion
     }
